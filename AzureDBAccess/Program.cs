@@ -11,6 +11,8 @@ internal class Program
         Console.WriteLine("\n\n\n");
         await CreateExample();
         Console.WriteLine("\n\n\n");
+        await GetExample();
+        Console.WriteLine("\n\n\n");
     }
 
     private static string GetConnectionString()
@@ -70,7 +72,9 @@ internal class Program
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine("\n---ERROR---");
+                Console.WriteLine(ex.ToString());
+                Console.WriteLine("---ERROR---\n");
             }
         }
         Console.WriteLine("SQL connection disposed of.");
@@ -154,6 +158,40 @@ internal class Program
         }
 
         // Use the RunThroughConnection method
+        await RunThroughConnectionAsync(setup, execution);
+    }
+
+    private static async Task GetExample()
+    {
+        // Define the IDs to attempt to look up
+        int[] addressIds = [9, 450, 451, 1, 452];
+
+        // Define the setup action
+        AddressRepository? addressRepo = null;
+        Task setup(SqlConnection connection)
+        {
+            addressRepo = new(connection);
+            return Task.CompletedTask;
+        }
+
+        // Define the execution action
+        async Task execution(SqlConnection connection)
+        {
+            if (addressRepo is null)
+            {
+                Console.WriteLine("The address repository could not be set up.");
+            }
+            else
+            {
+                Console.WriteLine("Looking for addresses with given IDs");
+                foreach (var addressId in addressIds)
+                {
+                    var address = await addressRepo.Get(addressId);
+                    Console.WriteLine($"Result for ID {addressId}: {address}");
+                }
+            }
+        }
+
         await RunThroughConnectionAsync(setup, execution);
     }
 }
