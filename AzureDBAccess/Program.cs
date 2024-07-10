@@ -13,6 +13,8 @@ internal class Program
         Console.WriteLine("\n\n\n");
         await GetExample();
         Console.WriteLine("\n\n\n");
+        await DeleteExample();
+        Console.WriteLine("\n\n\n");
     }
 
     private static string GetConnectionString()
@@ -188,6 +190,40 @@ internal class Program
                 {
                     var address = await addressRepo.Get(addressId);
                     Console.WriteLine($"Result for ID {addressId}: {address}");
+                }
+            }
+        }
+
+        await RunThroughConnectionAsync(setup, execution);
+    }
+
+    private static async Task DeleteExample()
+    {
+        // Define the IDs to attempt to remove
+        int[] addressIds = [451, 452, 453];
+
+        // Define the setup action
+        AddressRepository? addressRepo = null;
+        Task setup(SqlConnection connection)
+        {
+            addressRepo = new(connection);
+            return Task.CompletedTask;
+        }
+
+        // Define the execution action
+        async Task execution(SqlConnection connection)
+        {
+            if (addressRepo is null)
+            {
+                Console.WriteLine("The address repository could not be set up.");
+            }
+            else
+            {
+                Console.WriteLine("Deleting for addresses with given IDs");
+                foreach (var addressId in addressIds)
+                {
+                    var rowsAffected = await addressRepo.Delete(addressId);
+                    Console.WriteLine($"Rows affected when deleting ID {addressId}: {rowsAffected}");
                 }
             }
         }

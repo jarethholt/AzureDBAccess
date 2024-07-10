@@ -12,6 +12,12 @@ internal class AddressRepository(SqlConnection connection)
     private static DateTime CurrentDate() =>
         DateOnly.FromDateTime(DateTime.Now).ToDateTime(new TimeOnly());
 
+    private void EnsureConnectionOpen()
+    {
+        if (_connection.State != ConnectionState.Open)
+            _connection.Open();
+    }
+
     public async Task<Address?> Get(int addressId)
     {
         using SqlCommand getCommand = new(@"
@@ -31,9 +37,7 @@ internal class AddressRepository(SqlConnection connection)
         getCommand.Parameters.AddWithValue("AddressId", addressId);
 
         Address? address = null;
-
-        if (_connection.State != ConnectionState.Open)
-            _connection.Open();
+        EnsureConnectionOpen();
 
         using SqlDataReader reader = await getCommand.ExecuteReaderAsync();
         if (reader.HasRows)
@@ -89,8 +93,49 @@ internal class AddressRepository(SqlConnection connection)
         createCommand.Parameters.AddWithValue("PostalCode", addressDTO.PostalCode);
         createCommand.Parameters.AddWithValue("ModifiedDate", CurrentDate());
 
-        if (_connection.State != ConnectionState.Open)
-            _connection.Open();
+        EnsureConnectionOpen();
         return await createCommand.ExecuteNonQueryAsync();
+    }
+
+    public async Task<int> Update(int addressId, AddressDTO addressDTO)
+    {
+        using SqlCommand updateCommand = new(@"
+        UPDATE SalesLT.Address
+        SET
+            AddressLine1 = @AddressLine1
+            ,AddressLine2 = @AddressLine2
+            ,City = @City
+            ,StateProvince = @StateProvince
+            ,CountryRegion = @CountryRegion
+            ,PostalCode = @PostalCode
+            ,ModifiedDate = @ModifiedDate
+        WHERE AddressId = @AddressId
+        ", _connection);
+
+        updateCommand.Parameters.AddWithValue("AddressId", addressId);
+        updateCommand.Parameters.AddWithValue("AddressLine1", addressDTO.AddressLine1);
+        updateCommand.Parameters.AddWithValue("AddressLine2", addressDTO.AddressLine2 is null ? DBNull.Value : addressDTO.AddressLine2);
+        updateCommand.Parameters.AddWithValue("City", addressDTO.City);
+        updateCommand.Parameters.AddWithValue("StateProvince", addressDTO.StateProvince);
+        updateCommand.Parameters.AddWithValue("CountryRegion", addressDTO.CountryRegion);
+        updateCommand.Parameters.AddWithValue("PostalCode", addressDTO.PostalCode);
+        updateCommand.Parameters.AddWithValue("ModifiedDate", CurrentDate());
+
+        EnsureConnectionOpen();
+        return await updateCommand.ExecuteNonQueryAsync();
+    }
+
+    public async Task<int> Delete(int addressId)
+    {
+        // Create a Delete command that runs a manual cascade delete
+        using SqlCommand deleteCommand = new(@"
+        DELETE
+            FROM SalesLT.Address
+            WHERE AddressId = @AddressId
+        ", _connection);
+        deleteCommand.Parameters.AddWithValue("AddressId", addressId);
+
+        EnsureConnectionOpen();
+        return await deleteCommand.ExecuteNonQueryAsync();
     }
 }
