@@ -7,8 +7,8 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        TutorialExample();
-        Console.WriteLine("\n\n\n");
+        //TutorialExample();
+        //Console.WriteLine("\n\n\n");
         _ = await CombinedExample();
         //var addressId = await CreateExample();
         //Console.WriteLine("\n\n\n");

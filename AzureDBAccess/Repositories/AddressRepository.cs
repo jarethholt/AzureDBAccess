@@ -82,8 +82,8 @@ internal class AddressRepository(SqlConnection connection)
                 ,@PostalCode
                 ,NEWID()
                 ,@ModifiedDate
-            )
-            OUTPUT INSERTED.AddressId INTO @AddressId
+            );
+            SELECT SCOPE_IDENTITY()
         ", _connection);
 
         createCommand.Parameters.AddWithValue("AddressLine1", addressDTO.AddressLine1);
@@ -94,15 +94,16 @@ internal class AddressRepository(SqlConnection connection)
         createCommand.Parameters.AddWithValue("PostalCode", addressDTO.PostalCode);
         createCommand.Parameters.AddWithValue("ModifiedDate", CurrentDate());
 
-        SqlParameter addressIdParam = new("@AddressId", SqlDbType.Int)
-        {
-            Direction = ParameterDirection.Output
-        };
-        createCommand.Parameters.Add(addressIdParam);
-
         EnsureConnectionOpen();
-        _ = await createCommand.ExecuteNonQueryAsync();
-        return addressIdParam.Value as int? ?? default;
+        int addressId = default;
+
+        using SqlDataReader reader = await createCommand.ExecuteReaderAsync();
+        if (reader.HasRows)
+        {
+            if (await reader.ReadAsync())
+                addressId = (int)reader.GetDecimal(0);
+        }
+        return addressId;
     }
 
     public async Task<int> Update(int addressId, AddressDTO addressDTO)
